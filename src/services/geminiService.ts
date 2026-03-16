@@ -13,7 +13,7 @@ export const generateSpeech = async (text: string) => {
     return audioCache.get(text);
   }
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const apiKey = AIzaSyCwzKd6oh-H7E5g-iSVkQ-ZgwtMjJ4P2Zo;
   if (!apiKey || apiKey === "undefined" || apiKey === "null" || apiKey.length < 10) {
     console.error("Gemini API Key missing or invalid");
     throw new Error("Gemini API Key is niet geconfigureerd. Controleer je instellingen.");
