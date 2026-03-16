@@ -7,8 +7,7 @@ export const generateSpeech = async (text: string) => {
   if (!text || text.trim().length === 0) return null;
 
   try {
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const response = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: `Spreek de volgende tekst rustig, warm en vrouwelijk uit in het Nederlands: ${text}` }] }],
