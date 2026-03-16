@@ -1,6 +1,6 @@
 const apiKey = "AIzaSyCwzKd6oh-H7E5g-iSVkQ-ZgwtMjJ4P2Zo";
 
-// 1. De hoofdfunctie voor de AI Coach tekst
+// UNIVERSELE AI COACH FUNCTIE
 export const getGeminiResponse = async (history: any[], message: string) => {
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -10,26 +10,26 @@ export const getGeminiResponse = async (history: any[], message: string) => {
         contents: [
           ...history.map(h => ({
             role: h.role === 'user' ? 'user' : 'model',
-            parts: [{ text: h.text || h.content || "" }]
+            parts: [{ text: h.content || h.text || "" }]
           })),
           { role: 'user', parts: [{ text: message }] }
         ],
-        systemInstruction: { parts: [{ text: "Je bent de Regulated Identity Coach. Help de gebruiker in het Nederlands vanuit rust en verbinding." }] }
+        systemInstruction: { parts: [{ text: "Je bent de Regulated Identity Coach. Help de gebruiker in het Nederlands." }] }
       })
     });
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Ik kan momenteel geen antwoord formuleren.";
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Geen antwoord van AI.";
   } catch (e) {
-    console.error("Coach Error:", e);
-    return "Er is een verbindingsfout met de coach.";
+    return "Verbindingsfout. Controleer je internet.";
   }
 };
 
-// 2. Extra namen toevoegen voor het geval je app die gebruikt
+// ALIASES (Zorgt dat de app de functie altijd vindt onder de juiste naam)
 export const getCoachResponseStream = getGeminiResponse;
 export const getChatResponse = getGeminiResponse;
+export const getCoachResponse = getGeminiResponse;
 
-// 3. De functie voor het geluid (TTS)
+// UNIVERSELE GELUID FUNCTIE (TTS)
 export const generateSpeech = async (text: string) => {
   if (!text) return null;
   try {
@@ -47,7 +47,6 @@ export const generateSpeech = async (text: string) => {
     const data = await response.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
   } catch (e) {
-    console.error("Audio Error:", e);
     return null;
   }
 };
