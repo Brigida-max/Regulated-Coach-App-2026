@@ -1,46 +1,43 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-// We gebruiken de sleutel direct om configuratiefouten te voorkomen
 const apiKey = "AIzaSyCwzKd6oh-H7E5g-iSVkQ-ZgwtMjJ4P2Zo";
-const genAI = new GoogleGenerativeAI(apiKey);
 
+// Deze functie regelt het geluid
 export const generateSpeech = async (text: string) => {
   if (!text) return null;
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: `Spreek dit uit: ${text}` }] }],
-      generationConfig: {
-        responseModalities: ["audio"],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
-      }
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `Spreek dit uit: ${text}` }] }],
+        generationConfig: {
+          responseModalities: ["audio"],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+        }
+      })
     });
-    return result.response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
   } catch (e) {
-    console.error(e);
     return null;
   }
 };
 
+// Deze functie regelt de tekst van de coach
 export const getCoachResponseStream = async (history: any[], message: string, userProfile?: any, onChunk?: (text: string) => void) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const chat = model.startChat({
-      history: history.map(h => ({
-        role: h.role === 'user' ? 'user' : 'model',
-        parts: [{ text: h.text || "" }]
-      }))
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] })), { role: 'user', parts: [{ text: message }] }],
+        systemInstruction: { parts: [{ text: "Je bent de Regulated Identity Coach. Help de gebruiker in het Nederlands." }] }
+      })
     });
-
-    const result = await chat.sendMessageStream(message);
-    let fullText = "";
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      fullText += chunkText;
-      if (onChunk) onChunk(fullText);
-    }
+    const data = await response.json();
+    const fullText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Ik kon geen antwoord genereren.";
+    if (onChunk) onChunk(fullText);
     return fullText;
   } catch (e) {
-    return "Ik kan momenteel geen verbinding maken. Controleer de console.";
+    return "Verbindingsfout met de coach.";
   }
 };
