@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/genai";
 
 const apiKey = "AIzaSyCwzKd6oh-H7E5g-iSVkQ-ZgwtMjJ4P2Zo";
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -15,12 +15,12 @@ export const generateSpeech = async (text: string) => {
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: `Spreek de volgende tekst rustig en warm uit: ${text}` }] }],
       generationConfig: {
-        responseModalities: ["audio"],
+        responseModalities: ["audio" as any],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } },
       },
     });
 
-    const base64Audio = result.response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    const base64Audio = (result.response as any).candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (base64Audio) {
       audioCache.set(text, base64Audio);
       return base64Audio;
