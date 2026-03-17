@@ -33,8 +33,7 @@ import {
   MicOff
 } from 'lucide-react';
 import { REGULATION_CARDS, ASSESSMENT_QUESTIONS, RESET_QUESTIONS, LOADING_MESSAGES, RegulationCard, STATE_OPTIONS, MOOD_OPTIONS, SLEEP_OPTIONS, INNER_WORK_PROMPTS, GUIDE_MYTHS, GUIDE_TRIGGERS, VAGUS_EXERCISES, JournalEntry, SOMATIC_EXERCISES, SOMATIC_WISDOMS } from './constants';
-import { getCoachResponseStream, generateSpeech } from './services/geminiService';
-import { GoogleGenAI } from "@google/genai";
+import { getGeminiResponse, generateSpeech } from './services/geminiService';
 import Markdown from 'react-markdown';
 
 // --- Components ---
@@ -1197,121 +1196,31 @@ export default function App() {
     const sleepLabel = SLEEP_OPTIONS.find(s => s.id === trackerSleep)?.label || trackerSleep;
     
     const fullMessage = `Ik heb mijn Dagelijkse Tracker ingevuld:\n- Stressniveau: ${trackerStress}/10\n- Stemming: ${moodLabel}\n- Slaap: ${sleepLabel}\n\nHet advies dat ik kreeg was: "${trackerAdvice.title}".\n\nKun je me hier meer over vertellen of specifiek advies geven voor mijn situatie?`;
-    
-    // Consolidate history updates
-    const userMessage = { role: 'user' as const, parts: [{ text: fullMessage }] };
-    const modelPlaceholder = { role: 'model' as const, parts: [{ text: "" }] };
-    const updatedHistory = [...chatHistory, userMessage];
-    const historyWithPlaceholder = [...updatedHistory, modelPlaceholder];
-    
-    setChatHistory(historyWithPlaceholder);
-    setView('coach');
-    setCoachLoading(true);
-    
-    try {
-      if (process.env.GEMINI_API_KEY) {
-        await getCoachResponseStream(
-          updatedHistory, 
-          fullMessage, 
-          userProfile, 
-          (text) => {
-            setChatHistory(prev => {
-              const newHistory = [...prev];
-              if (newHistory.length > 0) {
-                newHistory[newHistory.length - 1] = { role: 'model', parts: [{ text }] };
-              }
-              return newHistory;
-            });
-          }
-        );
-      } else {
-        const fallbackText = "De AI Coach is momenteel niet verbonden (geen API-sleutel). Je kunt wel alle oefeningen, de tracker en de audio-begeleiding gebruiken!";
-        setChatHistory(prev => {
-          const newHistory = [...prev];
-          if (newHistory.length > 0) {
-            newHistory[newHistory.length - 1] = { role: 'model', parts: [{ text: fallbackText }] };
-          }
-          return newHistory;
-        });
-      }
-    } catch (error) {
-      console.error("Error sharing tracker with coach:", error);
-      const errorMessage = error instanceof Error ? error.message : "Onbekende fout";
-      setChatHistory(prev => {
-        const newHistory = [...prev];
-        if (newHistory.length >= 2) {
-          return newHistory.slice(0, -2);
-        }
-        return newHistory;
-      });
-      alert(`Er ging iets mis bij het delen van je tracker: ${errorMessage}`);
-    } finally {
-      setCoachLoading(false);
-    }
-  };
+   const handleSendMessage = async () => {
+    if (!userInput.trim() || coachLoading) return;
 
-  const handleSendMessage = async () => {
-    if (!isOnline) {
-      alert("De AI Coach is niet beschikbaar in offline modus.");
-      return;
-    }
-    if (!userInput.trim()) return;
-    
-    const newMessage = userInput;
+    const userMsg = userInput.trim();
     setUserInput("");
     
-    const userMessage = { role: 'user' as const, parts: [{ text: newMessage }] };
-    const modelPlaceholder = { role: 'model' as const, parts: [{ text: "" }] };
-    const updatedHistory = [...chatHistory, userMessage];
-    const historyWithPlaceholder = [...updatedHistory, modelPlaceholder];
-    
-    setChatHistory(historyWithPlaceholder);
+    const newHistory: any = [...chatHistory, { role: 'user', parts: [{ text: userMsg }] }];
+    setChatHistory(newHistory);
     setCoachLoading(true);
-    
+
     try {
-      if (process.env.GEMINI_API_KEY) {
-        await getCoachResponseStream(
-          updatedHistory, 
-          newMessage, 
-          userProfile, 
-          (text) => {
-            setChatHistory(prev => {
-              const newHistory = [...prev];
-              if (newHistory.length > 0) {
-                newHistory[newHistory.length - 1] = { role: 'model', parts: [{ text }] };
-              }
-              return newHistory;
-            });
-          }
-        );
-      } else {
-        setTimeout(() => {
-          const fallbackText = "De AI Coach is momenteel niet verbonden (geen API-sleutel). Je kunt wel alle oefeningen, de tracker en de audio-begeleiding gebruiken!";
-          setChatHistory(prev => {
-            const newHistory = [...prev];
-            newHistory[newHistory.length - 1] = { role: 'model', parts: [{ text: fallbackText }] };
-            return newHistory;
-          });
-          setCoachLoading(false);
-        }, 1000);
-        return;
-      }
+      // Directe verbinding met de nieuwe service
+      const response = await getGeminiResponse(chatHistory, userMsg);
+      
+      const updatedHistory: any = [...newHistory, { role: 'model', parts: [{ text: response }] }];
+      setChatHistory(updatedHistory);
+      
+      localStorage.setItem('regulated_coach_history', JSON.stringify(updatedHistory));
     } catch (error) {
-      console.error("Coach Error (handleSendMessage):", error);
-      const errorMessage = error instanceof Error ? error.message : "Onbekende fout";
-      setChatHistory(prev => {
-        const newHistory = [...prev];
-        if (newHistory.length >= 2) {
-          return newHistory.slice(0, -2);
-        }
-        return newHistory;
-      });
-      alert(`Excuses, er ging iets mis: ${errorMessage}`);
+      console.error("Coach error:", error);
     } finally {
       setCoachLoading(false);
+      setTimeout(scrollToBottom, 100);
     }
   };
-
   const handleStateSelection = (stateId: string) => {
     setCurrentState(stateId);
     const state = STATE_OPTIONS.find(s => s.id === stateId);
