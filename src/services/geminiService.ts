@@ -1,9 +1,9 @@
 const apiKey = "AIzaSyCwzKd6oh-H7E5g-iSVkQ-ZgwtMjJ4P2Zo";
 
-// 1. De Coach Tekst Functie
+// 1. De Coach Tekst Functie (Gebruikt de meest stabiele URL)
 export const getGeminiResponse = async (history: any[], message: string) => {
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -23,14 +23,14 @@ export const getGeminiResponse = async (history: any[], message: string) => {
   }
 };
 
-// Aliassen voor je app-onderdelen
 export const getCoachResponseStream = getGeminiResponse;
 export const getChatResponse = getGeminiResponse;
 
-// 2. De Geluid (TTS) Functie - DIT MOET DE 404 OPLOSSEN
+// 2. De Geluid (TTS) Functie - Aangepast naar de exact werkende v1beta URL
 export const generateSpeech = async (text: string) => {
   if (!text) return null;
   try {
+    // We gebruiken 'v1beta' omdat alleen die versie de 'AUDIO' modaliteit ondersteunt
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,17 +49,16 @@ export const generateSpeech = async (text: string) => {
 
     const data = await response.json();
     
-    // Cruciaal: We vissen de audio uit de v1beta structuur
-    const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    
-    if (!audioData) {
-      console.error("Geen audio in Google response:", data);
+    // Als er een error is, loggen we die nu direct in je scherm
+    if (data.error) {
+      console.error("GOOGLE ERROR:", data.error.message);
       return null;
     }
-    
-    return audioData;
+
+    const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    return audioData || null;
   } catch (e) {
-    console.error("Audio error:", e);
+    console.error("Netwerk error:", e);
     return null;
   }
 };
