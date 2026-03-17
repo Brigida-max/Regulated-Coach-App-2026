@@ -3854,6 +3854,5 @@ const handleSendMessage = async () => {
       </AnimatePresence>
     </div>
   );
-};
-
+}; // Dit haakje sluit de hele 'App' component af
 export default App;
