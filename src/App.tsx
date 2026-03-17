@@ -1191,14 +1191,10 @@ export default function App() {
       console.warn("Missing tracker data for sharing:", { trackerStress, trackerMood, trackerSleep, trackerAdvice });
       return;
     }
-    
-    const moodLabel = MOOD_OPTIONS.find(m => m.id === trackerMood)?.label || trackerMood;
-    const sleepLabel = SLEEP_OPTIONS.find(s => s.id === trackerSleep)?.label || trackerSleep;
-    
-    const fullMessage = `Ik heb mijn Dagelijkse Tracker ingevuld:\n- Stressniveau: ${trackerStress}/10\n- Stemming: ${moodLabel}\n- Slaap: ${sleepLabel}\n\nHet advies dat ik kreeg was: "${trackerAdvice.title}".\n\nKun je me hier meer over vertellen of specifiek advies geven voor mijn situatie?`;
-   const handleSendMessage = async () => {
+       
+const handleSendMessage = async () => {
     if (!userInput.trim() || coachLoading) return;
-
+     
     const userMsg = userInput.trim();
     setUserInput("");
     
